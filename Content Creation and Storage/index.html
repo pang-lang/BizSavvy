@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e0f7fa;
+      color: #00796b;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .hero {
+      background-color: #b2ebf2;
+      color: #00796b;
+      padding: 20px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .form-container {
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+      margin-top: 20px;
+      padding-right: 40px;
+    }
+
+    .field {
+      margin-bottom: 15px;
+    }
+
+    .label {
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .input,
+    .textarea,
+    .button {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #b2dfdb;
+      border-radius: 4px;
+    }
+
+    .button {
+      background-color: #4db6ac;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .button.is-danger {
+      background-color: #e57373;
+    }
+
+    .button:disabled {
+      background-color: #b2dfdb;
+      cursor: not-allowed;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    #message {
+      display: none;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #00796b;
+      padding: 8px;
+      background-color: #b2ebf2;
+      border-radius: 4px;
+      border: 1px solid #4db6ac;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <section class="hero">
+    <h1 class="title">Content Creation and Storage</h1>
+  </section>
+  <div class="form-container">
+    <form id="form" method="POST">
+      <div class="field">
+        <label class="label">Title</label>
+        <input class="input" type="text" placeholder="Title" name="Title" required />
+      </div>
+
+      <div class="field">
+        <label class="label">Image</label>
+        <input class="input" type="file" accept="image/*" id="image" required />
+      </div>
+
+      <div class="field">
+        <label class="label">Description</label>
+        <textarea class="textarea" placeholder="Description" name="Description" required></textarea>
+      </div>
+
+      <div class="field buttons">
+        <button class="button" type="submit" id="submit-button">Submit</button>
+        <button class="button is-danger" type="button" id="cancel-button">Cancel</button>
+      </div>
+    </form>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    document.getElementById("form").addEventListener("submit", function (e) {
+      e.preventDefault(); // Prevent the default form submission
+      document.getElementById("message").textContent = "Submitting..";
+      document.getElementById("message").style.display = "block";
+      document.getElementById("submit-button").disabled = true;
+
+      // Collect the form data
+      var formData = new FormData(this);
+      var keyValuePairs = [];
+      for (var pair of formData.entries()) {
+        keyValuePairs.push(pair[0] + "=" + pair[1]);
+      }
+
+      // Handle image file
+      var imageInput = document.getElementById("image");
+      if (imageInput.files.length > 0) {
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          var imageBase64 = event.target.result.split(',')[1];
+          keyValuePairs.push("Image=" + encodeURIComponent(imageBase64));
+          var formDataString = keyValuePairs.join("&");
+
+          // Send a POST request to your Google Apps Script
+          fetch(
+            "https://script.google.com/macros/s/AKfycbxTAUqoZQB6ujy5sAvH7d0WX8WKmq-CzWlQL5WwDYDosO_2rN01rkC5r0t13F6ZgoeJ/exec",
+            {
+              redirect: "follow",
+              method: "POST",
+              body: formDataString,
+              headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+              },
+            }
+          )
+            .then(function (response) {
+              if (response.ok) {
+                return response.json();
+              } else {
+                throw new Error("Failed to submit the form.");
+              }
+            })
+            .then(function (data) {
+              document.getElementById("message").textContent =
+                "Data submitted successfully!";
+              document.getElementById("message").style.display = "block";
+              document.getElementById("message").style.backgroundColor = "green";
+              document.getElementById("message").style.color = "beige";
+              document.getElementById("submit-button").disabled = false;
+              document.getElementById("form").reset();
+
+              setTimeout(function () {
+                document.getElementById("message").textContent = "";
+                document.getElementById("message").style.display = "none";
+              }, 2600);
+            })
+            .catch(function (error) {
+              console.error(error);
+              document.getElementById("message").textContent =
+                "An error occurred while submitting the form.";
+              document.getElementById("message").style.display = "block";
+            });
+        };
+        reader.readAsDataURL(imageInput.files[0]);
+      } else {
+        var formDataString = keyValuePairs.join("&");
+        // Send a POST request to your Google Apps Script
+        fetch(
+          "https://script.google.com/macros/s/AKfycbxTAUqoZQB6ujy5sAvH7d0WX8WKmq-CzWlQL5WwDYDosO_2rN01rkC5r0t13F6ZgoeJ/exec",
+          {
+            redirect: "follow",
+            method: "POST",
+            body: formDataString,
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8",
+            },
+          }
+        )
+          .then(function (response) {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error("Failed to submit the form.");
+            }
+          })
+          .then(function (data) {
+            document.getElementById("message").textContent =
+              "Data submitted successfully!";
+            document.getElementById("message").style.display = "block";
+            document.getElementById("message").style.backgroundColor = "green";
+            document.getElementById("message").style.color = "beige";
+            document.getElementById("submit-button").disabled = false;
+            document.getElementById("form").reset();
+
+            setTimeout(function () {
+              document.getElementById("message").textContent = "";
+              document.getElementById("message").style.display = "none";
+            }, 2600);
+          })
+          .catch(function (error) {
+            console.error(error);
+            document.getElementById("message").textContent =
+              "An error occurred while submitting the form.";
+            document.getElementById("message").style.display = "block";
+          });
+      }
+    });
+
+    document.getElementById("cancel-button").addEventListener("click", function () {
+      document.getElementById("form").reset();
+    });
+  </script>
+</body>
+
+</html>
