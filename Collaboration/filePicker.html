@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+</head>
+<body>
+  <div id="filePickerDiv"></div>
+  <script>
+    google.script.run.withSuccessHandler(renderFilePicker).getSpreadsheetFiles();
+
+    function renderFilePicker(files) {
+      var html = '<select id="filePickerSelect">';
+      files.forEach(file => {
+        html += `<option value="${file.id}">${file.name}</option>`;
+      });
+      html += '</select>';
+      html += '<button type="button" onclick="selectFile()">Select</button>';
+      document.getElementById('filePickerDiv').innerHTML = html;
+    }
+
+    function selectFile() {
+      var filePickerSelect = document.getElementById('filePickerSelect');
+      var selectedFileId = filePickerSelect.value;
+      google.script.run.closeDialogWithFileId(selectedFileId);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffeaea;
+      color: #333;
+      padding: 20px;
+    }
+    #title {
+      background-color: #ffc3c3;
+      color: #333;
+      padding: 50px;
+      text-align: center;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    #subfolderForm {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    #subfolderForm label {
+      font-weight: bold;
+    }
+    #subfolderForm input, #subfolderForm select, #subfolderForm button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    #subfolderForm button {
+      background-color: #f990dbc;
+      color: black;
+      border: none;
+      cursor: pointer;
+    }
+    #subfolderForm button:hover {
+      background-color: #f990dbc;
+    }
+    #loading {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .hidden {
+      display: none;
+    }
+    .form-section {
+      margin-bottom: 20px;
+    }
+    .pink-button {
+      background-color: #fadde1; 
+      color: black; 
+      border: none; 
+      cursor: pointer; 
+      padding: 10px; 
+      border-radius: 4px; 
+      margin: 8px 0; 
+      width: 100%; 
+    }
+
+    .pink-button:hover {
+      background-color: #ffcad4; 
+    }
+  </style>
+</head>
+<body>
+  <div id="title">Team Collaboration</div>
+  
+  <form id="subfolderForm">
+    <div class="form-section">
+      <label for="operationType">Operation : </label>
+      <select id="operationType" name="operationType" required>
+        <option value="new" selected>Create new spreadsheet</option>
+        <option value="existing">Add to existing spreadsheet</option>
+      </select>
+    </div>
+
+    <div id="mainFolderNameInput" class="form-section">
+      <label for="mainFolderName">Enter main folder name : </label>
+      <input type="text" id="mainFolderName" name="mainFolderName" required>
+    </div>
+
+    <div id="existingSpreadsheetInput" class="form-section hidden">
+      <button type="button" id="selectSpreadsheetButton" class="pink-button" onclick="showFilePicker()">Select spreadsheet</button>
+      <span id="selectedSpreadsheetId"></span>
+      <input type="hidden" id="spreadsheetId" name="spreadsheetId">
+    </div>
+
+    <div id="filePickerContainer" class="form-section hidden">
+      <label>Select spreadsheet : </label>
+      <div id="filePicker"></div>
+    </div>
+
+    <div class="form-section">
+      <label for="numSubfolders">Enter the number of subfolder(s) : </label>
+      <input type="number" id="numSubfolders" name="numSubfolders" min="1" required>
+    </div>
+
+    <div id="subfolderNames" class="form-section"></div>
+
+    <div class="form-section">
+      <input type="submit" value="Submit" class="pink-button">
+    </div>
+  </form>
+
+  <div id="loading" class="hidden">Processing your request, please wait......</div>
+
+  <script>
+    const form = document.getElementById('subfolderForm');
+    const numSubfoldersInput = document.getElementById('numSubfolders');
+    const subfolderNamesDiv = document.getElementById('subfolderNames');
+    const loadingDiv = document.getElementById('loading');
+    const operationTypeSelect = document.getElementById('operationType');
+    const mainFolderNameInput = document.getElementById('mainFolderNameInput');
+    const existingSpreadsheetInput = document.getElementById('existingSpreadsheetInput');
+    const spreadsheetIdInput = document.getElementById('spreadsheetId');
+    const selectSpreadsheetButton = document.getElementById('selectSpreadsheetButton');
+    const filePickerContainer = document.getElementById('filePickerContainer');
+    let filePicker;
+
+    operationTypeSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'new') {
+        mainFolderNameInput.style.display = 'block';
+        existingSpreadsheetInput.classList.add('hidden');
+      } else if (e.target.value === 'existing') {
+        mainFolderNameInput.style.display = 'none';
+        existingSpreadsheetInput.classList.remove('hidden');
+      }
+    });
+
+    numSubfoldersInput.addEventListener('input', (e) => {
+      const numSubfolders = e.target.value;
+      subfolderNamesDiv.innerHTML = '';
+      for (let i = 0; i < numSubfolders; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = 'subfolder' + (i + 1);
+        input.placeholder = 'Name of subfolder ' + (i + 1);
+        input.required = true;
+        subfolderNamesDiv.appendChild(input);
+        subfolderNamesDiv.appendChild(document.createElement('br'));
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loadingDiv.classList.remove('hidden'); 
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => {
+        data[key] = value;
+      });
+      google.script.run.withSuccessHandler((result) => {
+        loadingDiv.classList.add('hidden'); 
+        if (result.startsWith('http')) { 
+          alert('Google Sheet and Google Drive Folders created! You can now enter your team members\' name and gmail for collaboration! Do update your team access to each subfolder by ticking the checkbox(es)!');
+          window.open(result, '_blank');
+        } else { // Otherwise, it's an error message
+          alert('Error: ' + result);
+        }
+      }).withFailureHandler((error) => {
+        loadingDiv.classList.add('hidden'); 
+        alert('Error: ' + error);
+      }).processUserInput(data);
+    });
+
+
+    function showFilePicker() {
+      google.script.run.withSuccessHandler((files) => {
+        filePickerContainer.innerHTML = renderFilePicker(files);
+        filePicker = document.getElementById('filePickerSelect');
+        filePickerContainer.classList.remove('hidden');
+        selectSpreadsheetButton.disabled = true; 
+      }).getSpreadsheetFiles();
+    }
+
+    function renderFilePicker(files) {
+      let html = '<select id="filePickerSelect">';
+      files.forEach(file => {
+        html += `<option value="${file.id}">${file.name}</option>`;
+      });
+      html += '</select>';
+      html += '<button type="button" class="pink-button" onclick="selectFile()">Select</button>';
+      return html;
+    }
+
+    function selectFile() {
+      var selectedFileId = filePicker.value;
+      document.getElementById('selectedSpreadsheetId').textContent = ` (Spreadsheet selected with id : ${selectedFileId})`;
+      spreadsheetIdInput.value = selectedFileId;
+      alert('Spreadsheet selected: ' + selectedFileId);
+      filePickerContainer.classList.add('hidden'); 
+      selectSpreadsheetButton.disabled = false; 
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (operationTypeSelect.value === 'new') {
+        mainFolderNameInput.style.display = 'block';
+        existingSpreadsheetInput.classList.add('hidden');
+      } else if (operationTypeSelect.value === 'existing') {
+        mainFolderNameInput.style.display = 'none';
+        existingSpreadsheetInput.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
