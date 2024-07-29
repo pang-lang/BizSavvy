@@ -1,5 +1,4 @@
 const DATA_ENTRY_SHEET_NAME = "Sheet1";
-const FOLDER_ID = "1fjAVFdIEmfqESUkZtuaUmuZpw4IUlAEL"; 
 
 var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DATA_ENTRY_SHEET_NAME);
 
@@ -53,12 +52,16 @@ function appendToGoogleSheet(data) {
   sheet.appendRow(rowData);
 }
 
-
 function uploadImageToDrive(imageBase64) {
-  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const folderId = getFolderId();
+  const folder = DriveApp.getFolderById(folderId);
   const blob = Utilities.newBlob(Utilities.base64Decode(imageBase64), 'image/jpeg', 'uploaded_image.jpg');
   const file = folder.createFile(blob);
   return file.getUrl();
+}
+
+function getFolderId() {
+  return PropertiesService.getScriptProperties().getProperty('FOLDER_ID');
 }
 
 function doGet() {
