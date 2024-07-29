@@ -1,0 +1,464 @@
+<script>
+var info;
+var lastSelectedPageId = null;
+var currentPlatform = 'Facebook';
+var initialAnalyticsLoaded = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Menu bar functionality
+  var menuItems = document.querySelectorAll('.menu-bar a');
+  var contentSections = document.querySelectorAll('.content-section');
+
+  menuItems.forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      var targetSection = this.getAttribute('data-section');
+
+      menuItems.forEach(function(item) {
+        item.classList.remove('active');
+      });
+      this.classList.add('active');
+
+      contentSections.forEach(function(section) {
+        section.style.display = 'none';
+      });
+      document.getElementById(targetSection).style.display = 'block';
+
+      // Update analytics when switching sections using the current platform
+      updateAnalytics(currentPlatform);
+    });
+  });
+
+
+  function updatePlatformSelectors(platform) {
+    var platformSelectors = document.querySelectorAll('.platform-selector');
+    
+    platformSelectors.forEach(function(selector) {
+      var selectedPlatform = selector.querySelector('.selected-platform');
+      var dropdownLinks = selector.querySelectorAll('.dropdown-content a');
+      
+      // Update the selected platform display
+      selectedPlatform.innerHTML = '';
+      var icon = document.createElement('i');
+      icon.className = platform === 'Facebook' ? 'fab fa-facebook' : 'fab fa-instagram';
+      selectedPlatform.appendChild(icon);
+      selectedPlatform.appendChild(document.createTextNode(platform));
+      
+      // Update the dropdown selection
+      dropdownLinks.forEach(function(link) {
+        if (link.getAttribute('data-platform') === platform) {
+          link.classList.add('selected');
+        } else {
+          link.classList.remove('selected');
+        }
+      });
+    });
+    
+    currentPlatform = platform;
+  }
+
+  // Update the platform selector event listeners
+  var dropdowns = document.querySelectorAll('.dropdown-content');
+  dropdowns.forEach(function(dropdown) {
+    var links = dropdown.querySelectorAll('a');
+    
+    links.forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var platform = this.getAttribute('data-platform');
+        updatePlatformSelectors(platform);
+        updateAnalytics(platform);
+      });
+    });
+  });
+
+  var loginButton = document.getElementById('login-button');
+  var userInfo = document.getElementById('user-info');
+  var usernameSpan = document.getElementById('username');
+  var pageSelect = document.getElementById('page-select');
+
+  loginButton.addEventListener('click', function() {
+    google.script.run.withSuccessHandler(handleLoginSuccess).getAuthorizationUrl();
+  });
+
+  pageSelect.addEventListener('change', function() {
+    var selectedPlatform = document.querySelector('.selected-platform').textContent.trim();
+    updateAnalytics(selectedPlatform);
+  });
+
+  function handleLoginSuccess(authUrl) {
+    var width = 600;
+    var height = 600;
+    var left = (screen.width - width) / 2;
+    var top = (screen.height - height) / 2;
+    var options = 'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top;
+    
+    window.open(authUrl, 'FacebookLogin', options);
+    checkLoginStatus();
+  }
+
+  function checkLoginStatus() {
+    google.script.run.withSuccessHandler(function(userInfo) {
+      info = userInfo;
+      if (userInfo && userInfo.user) {
+        loginButton.style.display = 'none';
+        document.getElementById('user-info').style.display = 'block';
+        usernameSpan.textContent = userInfo.user.name;
+        populatePageSelect(userInfo.pages);
+
+        if (pageSelect.value && pageSelect.value !== lastSelectedPageId) {
+          lastSelectedPageId = pageSelect.value;
+          var selectedPlatform = document.querySelector('.selected-platform').textContent.trim();
+          updateAnalytics(selectedPlatform);
+        }
+      } else {
+        updateAllSectionsForLoggedOutUser();
+      }
+    }).getUserInfo();
+  }
+
+  function populatePageSelect(pages) {
+    pageSelect.innerHTML = ''; // Clear existing options
+    pages.forEach(function(page) {
+      var option = document.createElement('option');
+      option.value = page.id;
+      option.textContent = page.name;
+      if (page.instagram_business_account) {
+        option.textContent += ' (Instagram linked)';
+        option.dataset.instagramId = page.instagram_business_account.id;
+      }
+      pageSelect.appendChild(option);
+    });
+    
+    // Add event listener to page select
+
+    if (!pageSelect.dataset.listenerAdded) {
+      pageSelect.addEventListener('change', function() {
+        var selectedPageId = this.value;
+        if (selectedPageId !== lastSelectedPageId) {
+          lastSelectedPageId = selectedPageId;
+          var selectedPlatform = document.querySelector('.selected-platform').textContent.trim();
+          updateAnalytics(selectedPlatform);
+        }
+      });
+      pageSelect.dataset.listenerAdded = true;
+    }
+  }
+
+  function updateAnalytics(platform) {
+    if (!info || !info.user) {
+      updateAllSectionsForLoggedOutUser();
+      return;
+    }
+
+    var selectedOption = pageSelect.options[pageSelect.selectedIndex];
+    var pageId = selectedOption ? selectedOption.value : null;
+    var pageName = selectedOption ? selectedOption.text : 'Unknown Page';
+    console.log("Selected pageId:", pageId, "Page Name:", pageName);
+    var instagramId = selectedOption ? selectedOption.dataset.instagramId : null;
+    var activeSection = document.querySelector('.content-section[style="display: block;"]');
+    
+    if (!activeSection) {
+      console.warn('No active section found. Defaulting to overview.');
+      activeSection = document.getElementById('overview');
+      activeSection.style.display = 'block'; // Ensure the overview section is displayed
+    }
+    
+    var detailsDiv = activeSection.querySelector('#details');
+    var sectionName = activeSection.id;
+
+    if (!pageId) {
+      detailsDiv.innerHTML = '<p>Please select a Facebook page.</p>';
+      return;
+    }
+
+    if (platform === 'Instagram' && !instagramId) {
+      detailsDiv.innerHTML = '<p>Instagram data not available. This Facebook page is not linked to an Instagram account.</p>';
+    } else {
+      detailsDiv.innerHTML = '<p>Loading ' + platform + ' ' + sectionName + ' data...</p>';
+      var idToUse = platform === 'Instagram' ? instagramId : pageId;
+      
+      // Simulate fetching data (replace this with actual data fetching)
+      setTimeout(function() {
+        detailsDiv.innerHTML = '<p>' + platform + ' ' + sectionName + ' data for page ID: ' + pageId + '</p>';
+        if (platform === 'Instagram' && instagramId) {
+          detailsDiv.innerHTML += '<p>Instagram Business Account ID: ' + instagramId + '</p>';
+        }
+        
+        // Add more specific content based on the section
+        if (sectionName === 'overview') {
+          console.log("Fetching overview data");
+          google.script.run.withSuccessHandler(function(responseString) {
+            try {
+              var data = JSON.parse(responseString);
+              if (data && data.length > 0) {
+                displayOverallAnalytics(data, platform, pageName);
+              } else if (data && data.error) {
+                detailsDiv.innerHTML = '<p>Error: ' + data.error + '</p>';
+              } else {
+                detailsDiv.innerHTML = '<p>No overall analytics data available for ' + pageName + ' on ' + platform + '.</p>';
+              }
+            } catch (e) {
+              console.error('Error parsing response data:', e);
+              detailsDiv.innerHTML = '<p>Error processing response. Please try again.</p>';
+            }
+          })
+          .withFailureHandler(function(error) {
+            detailsDiv.innerHTML = '<p>Error fetching overview data for ' + pageName + ' on ' + platform + '. Please try again.</p>';
+          })
+          .getOverallAnalytics(idToUse, platform);
+        } else if (sectionName === 'content') {
+          console.log("Fetching content data");
+
+          google.script.run.withSuccessHandler(function(responseString) {
+            try {
+              var data = JSON.parse(responseString);
+              if (data && data.length > 0) {
+                displayContentAnalytics(data, platform, pageName);
+              } else if (data && data.error) {
+                detailsDiv.innerHTML = '<p>Error: ' + data.error + '</p>';
+              } else {
+                detailsDiv.innerHTML = '<p>No content analytics data available for ' + pageName + ' on ' + platform + '.</p>';
+              }
+            } catch (e) {
+              console.error('Error parsing response data:', e);
+              detailsDiv.innerHTML = '<p>Error processing response. Please try again.</p>';
+            }
+          })
+          .withFailureHandler(function(error) {
+            detailsDiv.innerHTML = '<p>Error fetching content data for ' + pageName + ' on ' + platform + '. Please try again.</p>';
+          })
+          .getContentAnalytics(idToUse, platform);
+          
+        }
+      }, 1000);
+    }
+  }
+
+  // Check if user is already logged in
+  google.script.run.withSuccessHandler(function(userInfo) {
+    info = userInfo;
+    if (userInfo && userInfo.user) {
+      loginButton.style.display = 'none';
+      document.getElementById('user-info').style.display = 'block';
+      usernameSpan.textContent = userInfo.user.name;
+      populatePageSelect(userInfo.pages);
+      
+      // Only update analytics if a page is selected
+      if (pageSelect.value && !initialAnalyticsLoaded) {
+        initialAnalyticsLoaded = true;
+        var selectedPlatform = document.querySelector('.selected-platform').textContent.trim();
+        updateAnalytics(selectedPlatform);
+      }
+    } else {
+      // User is not logged in, update all sections to show "No analytics available"
+      updateAllSectionsForLoggedOutUser();
+    }
+  }).getUserInfo();
+  
+  // Ensure the overview section is displayed initially
+  document.getElementById('overview').style.display = 'block';
+
+  updateAllSectionsForLoggedOutUser();
+
+  function displayOverallAnalytics(data, platform, pageName) {
+    var detailsDiv = document.getElementById('overview').querySelector('#details');
+
+    if (!Array.isArray(data) || data.length === 0) {
+        detailsDiv.innerHTML = `<p>No data available for ${pageName} on ${platform}.</p>`;
+        return;
+    }
+
+    // Find the most recent date in the data
+    var latestDate = new Date(Math.max.apply(null, data.map(entry => new Date(entry.date))));
+    
+    // Check if charts for this page already exist
+    var existingCharts = detailsDiv.querySelectorAll(`[id^="chart_${platform}_${pageName}_"]`);
+    
+    if (existingCharts.length === 0) {
+      // If charts don't exist, create new ones
+      detailsDiv.innerHTML = ''; // Clear existing content
+      detailsDiv.innerHTML += `<p>Data for ${pageName} on ${platform} as of: ${latestDate.toLocaleString()}</p>`;
+
+      var chartContainer = document.createElement('div');
+      chartContainer.style.display = 'flex';
+      chartContainer.style.flexDirection = 'column';
+      chartContainer.style.gap = '20px';
+      chartContainer.style.width = '100%';
+      detailsDiv.appendChild(chartContainer);
+
+      // Generate chart data for each metric
+      var metrics = data[0].metrics.slice(1).map(metric => metric[0]);
+        metrics.forEach(function(metricName) {
+        var metricDiv = document.createElement('div');
+        metricDiv.id = `chart_${platform}_${pageName}_${metricName.replace(/\s+/g, '_').toLowerCase()}`;
+        metricDiv.style.width = '100%';
+        metricDiv.style.height = '400px';
+        chartContainer.appendChild(metricDiv);
+
+        createOrUpdateChart(metricDiv.id, metricName, data, platform);
+      });
+    } else {
+      // If charts exist, update them with new data
+      detailsDiv.querySelector('p').textContent = `Data for ${pageName} on ${platform} as of: ${latestDate.toLocaleString()}`;
+      
+      existingCharts.forEach(function(chartDiv) {
+        var metricName = chartDiv.id.split('_').pop().replace(/_/g, ' ');
+        createOrUpdateChart(chartDiv.id, metricName, data, platform);
+      });
+    }
+  }
+
+  function createOrUpdateChart(chartId, metricName, data, platform) {
+    var dates = data.map(entry => new Date(entry.date));
+    dates.sort((a, b) => a - b); // Sort dates in ascending order
+
+    // Prepare data for google.visualization.arrayToDataTable
+    var chartArray = [['Date', 'Value']];
+    dates.forEach(function(date) {
+        var entry = data.find(entry => new Date(entry.date).toDateString() === date.toDateString());
+        var metricValue = 0;
+        if (entry && entry.metrics) {
+            var metricEntry = entry.metrics.find(metric => metric[0] === metricName);
+            if (metricEntry && metricEntry.length > 1) {
+                metricValue = parseFloat(metricEntry[1]);
+            }
+        }
+        if (isNaN(metricValue)) {
+            metricValue = 0;
+        }
+        chartArray.push([date, metricValue]);
+    });
+
+    var chartData = google.visualization.arrayToDataTable(chartArray);
+    var options = {
+      title: metricName,
+      width: 480,
+      height: 400,
+      hAxis: {
+        format: 'MM/dd',
+        gridlines: { count: 5 },
+        slantedText: true,
+        slantedTextAngle: 45,
+      },
+      vAxis: {
+        title: 'Metric Value',
+        format: '#,##0', // This will display integers
+        minValue: 0,
+        viewWindow: { min: 0 }
+      },
+      legend: { position: "none" },
+      pointSize: 5, // Add points to make individual dates more visible
+      lineWidth: 2
+    };
+
+    var chart = new google.visualization.LineChart(document.getElementById(chartId));
+    chart.draw(chartData, options);
+  }
+
+  function displayContentAnalytics(data, platform, pageName) {
+  var detailsDiv = document.getElementById('content').querySelector('#details');
+
+  // Check if table already exists
+  var existingTable = detailsDiv.querySelector('#contentTable');
+  var table, tbody;
+
+  if (existingTable) {
+    table = existingTable;
+    tbody = table.querySelector('tbody');
+    tbody.innerHTML = ''; // Clear existing rows
+  } else {
+    table = document.createElement('table');
+    table.id = 'contentTable';
+    table.className = 'content-table';
+
+    // Create table header
+    var thead = table.createTHead();
+    var headerRow = thead.insertRow();
+    var headers = [
+      { text: 'Publish Date', class: 'col-date' },
+      { text: 'Title', class: 'col-title' },
+      { text: 'Post ID', class: 'col-id' },
+      { text: 'Impressions', class: 'col-impressions' },
+      { text: platform === 'Facebook' ? 'Reactions' : 'Engagement', class: 'col-engagement' }
+    ];
+
+    headers.forEach(function(header) {
+      var th = document.createElement('th');
+      th.textContent = header.text;
+      th.className = header.class;
+      headerRow.appendChild(th);
+    });
+
+    // Create table body
+    tbody = table.createTBody();
+    detailsDiv.appendChild(table);
+  }
+
+  // Populate or update table rows
+  data.forEach(function(post) {
+    if (post && post.postId) {
+      var existingRow = tbody.querySelector('tr[data-post-id="' + post.postId + '"]');
+      if (existingRow) {
+        // Update existing row
+        updateTableRow(existingRow, post, platform);
+      } else {
+        // Create new row
+        var newRow = createTableRow(post, platform);
+        tbody.appendChild(newRow);
+      }
+    } else {
+      console.warn('Invalid post data:', post);
+    }
+  });
+}
+
+function createTableRow(post, platform) {
+  var row = document.createElement('tr');
+  row.setAttribute('data-post-id', post.postId);
+
+  var cells = [
+    { content: formatDate(post.publishDate), class: 'col-date' },
+    { content: post.title, class: 'col-title' },
+    { content: post.postId, class: 'col-id' },
+    { content: post.impressions, class: 'col-impressions' },
+    { content: platform === 'Facebook' ? post.reactions : post.engagement, class: 'col-engagement' }
+  ];
+
+  cells.forEach(function(cellData) {
+    var cell = row.insertCell();
+    cell.textContent = cellData.content;
+    cell.className = cellData.class;
+  });
+
+  return row;
+}
+
+function updateTableRow(row, post, platform) {
+  var cells = row.cells;
+  cells[0].textContent = formatDate(post.publishDate);
+  cells[1].textContent = post.title;
+  cells[3].textContent = post.impressions;
+  cells[4].textContent = platform === 'Facebook' ? post.reactions : post.engagement;
+}
+
+function formatDate(dateString) {
+  var date = new Date(dateString);
+  var day = date.getDate().toString().padStart(2, '0');
+  var month = (date.getMonth() + 1).toString().padStart(2, '0');
+  var year = date.getFullYear();
+  return day + '/' + month + '/' + year;
+}
+
+
+});
+
+function updateAllSectionsForLoggedOutUser() {
+  var contentSections = document.querySelectorAll('.content-section');
+  contentSections.forEach(function(section) {
+    var detailsDiv = section.querySelector('#details');
+    detailsDiv.innerHTML = '<p>No analytics available. Please connect your Facebook account.</p>';
+  });
+}
+
+</script>

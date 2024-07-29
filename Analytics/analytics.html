@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('css') ?>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(function() {
+        console.log("Google Charts loaded");
+      });
+    </script>
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="sidebar">
+        <h2>Insights</h2>
+        <p style="font-size: 13px;border-bottom: 1px solid #bdafcf;padding-bottom: 10px;color:#411e65;">Review your performance results.</p>
+        <nav class="menu-bar">
+          <ul>
+            <li><a href="#" data-section="overview" class="active"><i class="fas fa-chart-pie"></i>Overview</a></li>
+            <li><a href="#" data-section="content"><i class="fas fa-file-alt"></i>Content</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="content">
+        <div id="top">
+          <div id="login-section">
+            <button id="login-button" class="login-btn">Connect Facebook</button>
+            <div id="user-info" style="display: none;">
+              <div class="user-info-container">
+                <p>Account: <span id="username"></span></p>
+                <select id="page-select" class="page-select"></select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="overview" class="content-section">
+          <div id="title">
+            <h4>Overview</h4>
+            <div class="platform-selector">
+              <span class="selected-platform">
+                <i class="fab fa-facebook"></i>
+                <span>Facebook</span>
+              </span>
+              <div class="dropdown">
+                <button class="dropbtn"><i class="fas fa-caret-down"></i></button>
+                <div class="dropdown-content">
+                  <a href="#" data-platform="Facebook" class="selected">
+                    <i class="fab fa-facebook"></i>
+                    <span>Facebook</span>
+                  </a>
+                  <a href="#" data-platform="Instagram">
+                    <i class="fab fa-instagram"></i>
+                    <span>Instagram</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="details">
+            <p>Overview content goes here.</p>
+            <div id="facebook-overall-chart"></div>
+            <div id="instagram-overall-chart"></div>
+          </div>
+        </div>
+        <div id="content" class="content-section">
+          <div id="title">
+            <h4>Content</h4>
+            <div class="platform-selector">
+              <span class="selected-platform">
+                <i class="fab fa-facebook"></i>
+                <span>Facebook</span>
+              </span>
+              <div class="dropdown">
+                <button class="dropbtn"><i class="fas fa-caret-down"></i></button>
+                <div class="dropdown-content">
+                  <a href="#" data-platform="Facebook" class="selected">
+                    <i class="fab fa-facebook"></i>
+                    <span>Facebook</span>
+                  </a>
+                  <a href="#" data-platform="Instagram">
+                    <i class="fab fa-instagram"></i>
+                    <span>Instagram</span>
+                  </a>
+                </div>
+                </div>
+            </div>
+          </div>
+          <div id="details">
+            <p>Content details go here.</p>
+            <div id="facebook-post-table"></div>
+            <div id="instagram-post-table"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <?!= include('javascript'); ?>
+</html>

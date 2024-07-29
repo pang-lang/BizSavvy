@@ -1,0 +1,244 @@
+<style>
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(to right, #ede3f7, #cba5d7);
+  }
+
+  .container {
+    display: flex;
+    height: 100vh;
+  }
+
+  .sidebar {
+    width: 200px;
+    padding-top: 25px;
+    padding-left: 50px;
+  }
+
+  h2 {
+    margin: 20px 0 15px 0;
+    font-size:32px;
+  }
+
+  .menu-bar
+  {
+    padding-top: 5px;
+  }
+
+  .menu-bar ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .menu-bar li a {
+    display: block;
+    color: #333;
+    padding: 10px 10px;
+    margin-bottom: 5px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+  }
+
+  .menu-bar li a:hover {
+    background-color: #ddd4e7;
+  }
+    
+  .menu-bar li a.active {
+    background-color: #7447a5;
+    color: white;
+  }
+
+  .menu-bar li a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .content {
+    flex-grow: 1;
+    padding: 50px;
+
+    overflow-y: auto;
+  }
+
+  .content-section {
+    display: none;
+  }
+
+  #overview {
+    display: block;
+  }
+
+  #title, #details
+  {
+    background-color: white;
+    padding: 3px 20px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+
+  #title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .platform-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 110px; /* Adjust as needed */
+    padding: 5px 14px;
+    border: 1px solid #af73ca;
+    border-radius: 2px;
+  }
+
+  .selected-platform {
+    padding: 5px 0px;
+    color: black;
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+  }
+
+  .selected-platform i,
+  .dropdown-content a i {
+    margin-right: 8px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropbtn {
+    color: #af73ca;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    background-color: white;
+    margin-left: 7px;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+  }
+
+  .dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .dropdown-content a:hover {
+    background-color: #dcd1e7;
+  }
+
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+
+  .login-btn {
+    background-color: #1877f2;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+
+  .login-btn:hover {
+    background-color: #166fe5;
+  }
+
+  #user-info {
+    border-radius: 2px;
+    border: 1px solid #af73ca;
+  }
+
+  #user-info p {
+    padding: 1px 5px;
+    font-size: 14px;
+  }
+
+  .page-select {
+    background-color: transparent; 
+    padding: 1px 3px;
+    font-size: 14px;
+    min-width: 150px;
+    border: none;
+  }
+
+  .user-info-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 1px 2px;
+  }
+
+  #login-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+
+  #top {
+    margin-bottom: 20px;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 20px 20px 0px;
+  }
+
+  th, td {
+    padding: 8px;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+  }
+
+  tr:hover {background-color:#f5f5f5;}
+
+
+  .content-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+
+  .content-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  .content-table tr:hover {
+    background-color: #f5f5f5;
+  }
+
+  .col-date { width: 15%; }
+  .col-title { width: 45%; }
+  .col-id { width: 20%; }
+  .col-impressions { width: 10%; }
+  .col-engagement { width: 10%; }
+
+</style>
