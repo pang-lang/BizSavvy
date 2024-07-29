@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://script.google.com">
+  <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+  <script type="text/javascript" src="https://apis.google.com/js/platform.js"></script>
+  <style>
+    #loadingMessage {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      border: 1px solid black;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+     body {
+      font-family: Lexend, sans-serif;
+      background-color: #e8f5e9;
+      color: #333;
+      padding: 20px;
+    }
+    #title {
+      background-color: #bec7b4;
+      color: #333;
+      padding: 50px;
+      text-align: center;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    #contentForm {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    #contentForm label {
+      font-weight: bold;
+    }
+    #contentForm input, #contentForm select, #contentForm button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    #contentForm button {
+      background-color: #a5d6a7;
+      color: black;
+      border: none;
+      cursor: pointer;
+    }
+    #contentForm button:hover {
+      background-color: #c8e6c9;
+    }
+    #loading {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .hidden {
+      display: none;
+    }
+    .form-section {
+      margin-bottom: 20px;
+    }
+    .green-button {
+      background-color: #c8e6c9; 
+      color: black; 
+      border: none; 
+      cursor: pointer; 
+      padding: 10px; 
+      border-radius: 4px; 
+      margin: 8px 0; 
+      width: 100%; 
+    }
+    .green-button:hover {
+      background-color: #a5d6a7; 
+    }
+
+    #selectedImagesPreview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .image-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .image-preview img,
+    .image-preview div {
+      margin-bottom: 5px;
+    }
+
+    .image-preview img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="title">Content Scheduling & Posting</div>
+  <form id="contentForm">
+    <div class="form-section">
+      <label for="contentTitle">Content Title:</label>
+      <input type="text" id="contentTitle" name="contentTitle" required>
+    </div>
+
+  <form id="contentForm">
+
+    <label for="description">Content Description:</label>
+    <input type="text" id="description" name="description" required><br><br>
+
+    <label for="status">Status:</label>
+    <select id="status" name="status" required>
+      <option value="In Progress">In Progress</option>
+      <option value="Under Review">Under Review</option>
+      <option value="Published">Published</option>
+    </select><br><br>
+
+    <!--xy added code here-->
+    <legend>Where do you want to share your post?</legend>
+    <div>
+      <input type="checkbox" id="facebook" name="platform" value="Facebook" onchange="updateRequiredFields()">
+      <label for="facebook">Facebook</label>
+    </div>
+
+    <div>
+      <input type="checkbox" id="instagram" name="platform" value="Instagram" onchange="updateRequiredFields()">
+      <label for="instagram">Instagram</label>
+    </div>
+    <div id="instagramOptions" style="display: none;">
+      <select id="instagramDropdown"></select>
+    </div>
+    
+    <div>
+      <input type="checkbox" id="linkedin" name="platform" value="Linkedin" onchange="updateRequiredFields()">
+      <label for="linkedin">LinkedIn</label>
+    </div><br>
+
+    <input type="button" class="green-button" value="Select Images from Drive (Max 5)" onclick="loadPicker()">
+    <div id="selectedDriveImages"></div><br><br>
+
+    <div id="selectedImagesPreview"></div>
+
+    <input type="hidden" id="selectedImages" name="selectedImages"><br><br>
+    <!--xy code ends-->
+
+    <label for="caption">Post Caption:</label>
+    <input type="text" id="caption" name="caption" required><br><br>
+
+    <label for="postingDate">Posting Date:</label>
+    <input type="date" id="postingDate" name="postingDate" required><br><br>
+
+    <label for="postingTime">Posting Time:</label>
+    <input type="time" id="postingTime" name="postingTime" required><br><br>
+
+    <label for="picEmail">PIC Email:</label>
+    <input type="email" id="picEmail" name="picEmail" required><br><br>
+
+    <input type="button" class="green-button" value="Submit to Existing Spreadsheet" onclick="submitForm('existing')">
+    <input type="button" class="green-button" value="Create New Spreadsheet" onclick="submitForm('new')">
+
+  </form>
+  <div id="facebookOptions" style="display: none;">
+    <button id="loginButton" onclick="login()">Connect to Facebook</button>
+    <button id="logoutButton" onclick="logout()" style="display:none;">Disconnect Facebook</button>
+    <div id="loginStatus"></div>
+    <div id="pageSelection" style="display:none;">
+      <select id="pageDropdown"></select>
+    </div>
+  </div>
+
+  <div id="loadingMessage">Processing your request, please wait ...</div>
+
+  <script>
+    var loginWindow;
+    let loginCheckInterval;
+    let hasFacebookPages = false;
+    let isFacebookLoggedIn = false;
+    var hasInstagramAccount = false;
+    let selectedImages = [];
+
+    function loadPicker() {
+      console.log('Loading picker...');
+      gapi.load('picker', {'callback': createPicker});
+    }
+
+    function createPicker() {
+      console.log('Creating picker...');
+      google.script.run.withSuccessHandler(createPickerCallback).withFailureHandler(function(error) {
+        console.error('Error in getOAuthToken:', error);
+        alert('Failed to get OAuth token: ' + error);
+      }).getOAuthToken();
+    }
+
+    function createPickerCallback(authResult) {
+      if (authResult.error) {
+        console.error('Auth error:', authResult.error);
+        alert('Authentication error: ' + authResult.error);
+        return;
+      }
+      if (!authResult) {
+        console.error('No OAuth token received');
+        alert('No OAuth token received. Please check your authorization settings.');
+        return;
+      }
+
+      const oauthToken = authResult;
+
+      const view = new google.picker.View(google.picker.ViewId.DOCS_IMAGES);
+      const picker = new google.picker.PickerBuilder()
+          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+          .setOAuthToken(oauthToken)
+          .setOrigin('https://script.google.com')
+          .addView(view)
+          .setCallback(pickerCallback)
+          .build();
+      picker.setVisible(true);
+    }
+
+    async function pickerCallback(data) {
+      if (data.action == google.picker.Action.PICKED) {
+        const existingHashes = selectedImages.map(img => img.hash);
+        
+        for (const image of data.docs) {
+          console.log('Image ID:', image[google.picker.Document.ID]);
+          console.log('Image Name:', image[google.picker.Document.NAME]);
+          
+          try {
+            const imageData = await new Promise((resolve, reject) => {
+              google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(reject)
+                .getImageAsBase64(image[google.picker.Document.ID]);
+            });
+
+            if (imageData) {
+              const { base64, mimeType } = JSON.parse(imageData);
+              const dataUrl = `data:${mimeType};base64,${base64}`;
+              const imageHash = await calculateImageHash(dataUrl);
+              
+              if (!existingHashes.includes(imageHash)) {
+                selectedImages.push({
+                  type: 'drive',
+                  id: image.id,
+                  name: image.name,
+                  url: image[google.picker.Document.URL],
+                  alt: image.name,
+                  hash: imageHash,
+                  mimeType: mimeType
+                });
+                existingHashes.push(imageHash);
+              } else {
+                console.log('Duplicate image detected:', image.name);
+              }
+            }
+          } catch (error) {
+            console.error('Error calculating hash for image:', image.name, error);
+          }
+        }
+        updateSelectedImagesPreview();
+        updateRequiredFields();
+      }
+    }
+
+    function calculateImageHash(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = 8;
+          canvas.height = 8;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 8, 8);
+          const data = ctx.getImageData(0, 0, 8, 8).data;
+          let hash = 0;
+          for (let i = 0; i < data.length; i++) {
+            hash = ((hash << 5) - hash) + data[i];
+            hash = hash & hash;
+          }
+          resolve(hash.toString());
+        };
+        img.onerror = function(error) {
+          console.error('Error loading image:', error);
+          reject(error);
+        };
+        img.src = dataUrl;
+      });
+    }
+
+    function submitForm(action) {
+      const form = document.getElementById('contentForm');
+      const formData = new FormData(form);
+
+      const data = {};
+      formData.forEach((value, key) => {
+        if (key === 'platform') {
+          if (!data[key]) {
+            data[key] = [];
+          }
+          data[key].push(value);
+        } else {  // Exclude imageUpload
+          data[key] = value;
+        }
+      });
+
+      document.getElementById('loadingMessage').style.display = 'block';
+
+      let isValid = true;
+      let errorMessage = '';
+
+      if (data.platform) {
+        if ((data.platform.includes('Facebook') || data.platform.includes('Linkedin')) && !data.caption) {
+          isValid = false;
+          errorMessage += 'Caption is required for Facebook and LinkedIn posts. ';
+        }
+
+        if (data.platform.includes('Instagram')) {
+          const instagramDropdown = document.getElementById('instagramDropdown');
+          if (!hasInstagramAccount) {
+            isValid = false;
+            errorMessage += 'You need a connected Instagram business account to post on Instagram. ';
+          } else if (selectedImages.length === 0) {
+            isValid = false;
+            errorMessage += 'At least one image is required for Instagram posts. ';
+          } else {
+            try {
+              const selectedInstagram = JSON.parse(instagramDropdown.value);
+              data.instagramAccountId = selectedInstagram.id;
+              data.instagramAssociatedPageToken = selectedInstagram.pageToken;
+              console.log('Instagram Account ID:', data.instagramAccountId);
+              console.log('Instagram Associated Page Token:', data.instagramAssociatedPageToken);
+            } catch (error) {
+              console.error('Error parsing Instagram dropdown value:', error);
+            }
+          }
+        }
+
+        if (data.platform.includes('Facebook')) {
+          if (!isFacebookLoggedIn) {
+            isValid = false;
+            errorMessage += 'Please log in to Facebook before submitting. ';
+          } else if (!hasFacebookPages) {
+            isValid = false;
+            errorMessage += 'You need at least one Facebook page to post. ';
+          } else {
+            const pageDropdown = document.getElementById('pageDropdown');
+            const selectedPageId = pageDropdown.value;
+            const pageInfo = JSON.parse(localStorage.getItem('facebook_page_' + selectedPageId));
+            
+            if (pageInfo) {
+              data.facebookPageId = pageInfo.id;
+              data.facebookAccessToken = pageInfo.access_token;
+            } else {
+              isValid = false;
+              errorMessage += 'Unable to retrieve Facebook page information. Please try logging in again. ';
+            }
+          }
+        }
+      }
+
+      if (!isValid) {
+        alert(errorMessage);
+        return;
+      }
+
+      data.selectedImages = selectedImages.map(image => ({
+        id: image.id,
+        name: image.name,
+        url: image.url,
+        mimeType: image.mimeType
+      }));
+
+      console.log('Form Data:', data);
+
+      google.script.run.withSuccessHandler(function(result) {
+          alert('Form submitted successfully! An email has been sent to the PIC. Click "OK" to view the spreadsheet and calendar.');
+
+          // Open both URLs in new tabs
+          var spreadsheetWindow = window.open(result.spreadsheetUrl, '_blank');
+          var calendarWindow = window.open(result.calendarUrl, '_blank');
+
+          // Focus on the new windows
+          if (spreadsheetWindow) {
+            spreadsheetWindow.focus();
+          }
+          if (calendarWindow) {
+            calendarWindow.focus();
+          }
+          selectedImages = [];
+          form.reset();
+          document.getElementById('loadingMessage').style.display = 'none';
+          updateSelectedImagesPreview();
+          updateRequiredFields();
+        }).withFailureHandler(function(error) {
+          alert('Error: ' + error.message);
+          document.getElementById('loadingMessage').style.display = 'none';
+        }).processForm(data, action);
+    }
+
+    function updateSelectedImagesPreview() {
+      const previewDiv = document.getElementById('selectedImagesPreview');
+      previewDiv.innerHTML = '';
+      selectedImages.forEach((image) => {
+        const imageDiv = document.createElement('div');
+        imageDiv.className = 'image-preview';
+        
+        const link = document.createElement('a');
+        link.href = image.url;
+        link.target = "_blank";
+        link.textContent = image.name;
+
+        /**const img = document.createElement('img');
+        google.script.run.withSuccessHandler(function(response) {
+          const imageData = JSON.parse(response);
+          const base64 = imageData.base64;
+          const mimeType = imageData.mimeType;
+          img.src = `data:${mimeType};base64,${base64}`;
+        }).getImageAsBase64(image.id);
+
+        img.alt = image.name;
+        img.style.width = '100px';  // Set an appropriate size
+        img.style.height = 'auto';
+        imageDiv.appendChild(img);**/
+        imageDiv.appendChild(link);
+
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove';
+        removeButton.onclick = function() {
+          selectedImages = selectedImages.filter(img => img.id !== image.id);
+          updateSelectedImagesPreview();
+          updateRequiredFields();
+        };
+        imageDiv.appendChild(removeButton);
+
+        previewDiv.appendChild(imageDiv);
+      });
+    }
+
+    function updateRequiredFields() {
+      const facebookCheckbox = document.getElementById('facebook');
+      const instagramCheckbox = document.getElementById('instagram');
+      const linkedinCheckbox = document.getElementById('linkedin');
+      const captionInput = document.getElementById('caption');
+      const imageUpload = document.getElementById('imageUpload');
+      const submitButtons = document.querySelectorAll('input[type="button"][value^="Submit"], input[type="button"][value^="Create"]');
+      const facebookOptions = document.getElementById('facebookOptions');
+      const instagramOptions = document.getElementById('instagramOptions');
+
+      captionInput.required = facebookCheckbox.checked || linkedinCheckbox.checked;
+  
+      const isValid = !(instagramCheckbox.checked && selectedImages.length === 0) &&
+                  !((facebookCheckbox.checked || linkedinCheckbox.checked) && captionInput.value.trim() === '') &&
+                  !(facebookCheckbox.checked && (!isFacebookLoggedIn || !hasFacebookPages)) &&
+                  !(instagramCheckbox.checked && !hasInstagramAccount);
+
+      facebookOptions.style.display = (facebookCheckbox.checked || instagramCheckbox.checked) ? 'block' : 'none';
+      instagramOptions.style.display = instagramCheckbox.checked && hasInstagramAccount ? 'block' : 'none';
+
+      // Enable or disable submit buttons based on validity
+      submitButtons.forEach(button => {
+        button.disabled = !isValid;
+      });
+
+      // Update validation message
+      updateValidationMessage();
+    }
+
+    function updateValidationMessage() {
+      const facebookCheckbox = document.getElementById('facebook');
+      const instagramCheckbox = document.getElementById('instagram');
+      const linkedinCheckbox = document.getElementById('linkedin');
+      const captionInput = document.getElementById('caption');
+      
+      let message = '';
+
+      if ((facebookCheckbox.checked || linkedinCheckbox.checked) && captionInput.value.trim() === '') {
+        message += 'Caption is required for Facebook and LinkedIn posts. ';
+      }
+
+      if (instagramCheckbox.checked && selectedImages.length === 0) {
+        message += 'At least one image is required for Instagram posts. ';
+      }
+
+      if (facebookCheckbox.checked) {
+        if (!isFacebookLoggedIn) {
+          message += 'Please log in to Facebook before submitting. ';
+        } else if (!hasFacebookPages) {
+          message += 'You need at least one Facebook page to post. ';
+        }
+      }
+
+      if (instagramCheckbox.checked && !hasInstagramAccount) {
+        message += 'You need a connected Instagram business account to post on Instagram. ';
+      }
+
+      const validationMessage = document.getElementById('validationMessage') || createValidationMessageElement();
+      validationMessage.textContent = message;
+      validationMessage.style.display = message ? 'block' : 'none';
+    }
+
+    function createValidationMessageElement() {
+      const validationMessage = document.createElement('div');
+      validationMessage.id = 'validationMessage';
+      validationMessage.style.color = 'red';
+      validationMessage.style.marginTop = '10px';
+      document.getElementById('contentForm').appendChild(validationMessage);
+      return validationMessage;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateRequiredFields();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const facebookCheckbox = document.getElementById('facebook');
+      const instagramCheckbox = document.getElementById('instagram');
+      const linkedinCheckbox = document.getElementById('linkedin');
+      const captionInput = document.getElementById('caption');
+
+      [facebookCheckbox, instagramCheckbox, linkedinCheckbox, captionInput].forEach(element => {
+        element.addEventListener('change', updateRequiredFields);
+      });
+
+      captionInput.addEventListener('input', updateRequiredFields);
+
+      updateRequiredFields(); // Initial call to set up the form state
+    });
+
+    function login() {
+      clearLoginCheckInterval(); 
+      console.log('Login function called');
+      google.script.run
+        .withSuccessHandler(function(url) {
+          console.log('Authorization URL received:', url);
+          loginWindow = window.open(url, 'FacebookLogin', 'width=600,height=600');
+          if (!loginWindow || loginWindow.closed || typeof loginWindow.closed == 'undefined') {
+            alert("Popup blocked. Please allow popups for this site and try again.");
+          } else {
+            startLoginCheckInterval();
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error getting authorization URL:', error);
+        })
+        .getAuthorizationUrl();
+    }
+
+    function startLoginCheckInterval() {
+      loginCheckInterval = setInterval(function() {
+        console.log('Checking login status...');
+        if (localStorage.getItem("facebook_login_success") === "true") {
+          console.log('Login success detected');
+          clearLoginCheckInterval();
+          localStorage.removeItem("facebook_login_success");
+          getUserInfo();
+        }
+      }, 1000);
+    }
+
+    function clearLoginCheckInterval() {
+      if (loginCheckInterval) {
+        clearInterval(loginCheckInterval);
+        loginCheckInterval = null;
+      }
+    }
+
+    function updateUI(userInfo) {
+      if (!userInfo) {
+        userInfo = { error: 'No user information available' };
+      }
+
+      if (userInfo.loggedOut) {
+        console.log('User logged out');
+        document.getElementById('loginStatus').innerHTML = 'Logged out successfully';
+        document.getElementById('loginButton').style.display = 'inline';
+        document.getElementById('logoutButton').style.display = 'none';
+        document.getElementById('pageSelection').style.display = 'none';
+        isFacebookLoggedIn = false;
+        hasFacebookPages = false;
+        updateRequiredFields();
+      } else if (userInfo.needsReauth) {
+        console.log('Reauthentication needed');
+        document.getElementById('loginStatus').innerHTML = 'Session expired. Please log in again.';
+        document.getElementById('loginButton').style.display = 'inline';
+        document.getElementById('logoutButton').style.display = 'none';
+        document.getElementById('pageSelection').style.display = 'none';
+        isFacebookLoggedIn = false;
+        hasFacebookPages = false;
+      } else if (userInfo && userInfo.user && userInfo.user.name) {
+        console.log('User is logged in');
+        isFacebookLoggedIn = true;
+        updateRequiredFields();
+        document.getElementById('loginStatus').innerHTML = 'Logged in as: ' + userInfo.user.name;
+        document.getElementById('loginButton').style.display = 'none';
+        document.getElementById('logoutButton').style.display = 'inline';
+
+        if (userInfo.pages && userInfo.pages.length > 0) {
+          console.log('User has pages:', userInfo.pages.length);
+          hasFacebookPages = true;
+          var pageDropdown = document.getElementById('pageDropdown');
+          var instagramDropdown = document.getElementById('instagramDropdown');
+          instagramDropdown.innerHTML = '';
+          pageDropdown.innerHTML = '';
+
+          userInfo.pages.forEach(function(page) {
+            console.log('Processing page:', page);
+            console.log('Instagram Business Account:', page.instagram_business_account);
+            var option = document.createElement('option');
+            option.value = page.id;
+            option.text = page.name + (page.instagram_business_account ? ' (Instagram Connected)' : '');
+            pageDropdown.add(option);
+            // Store page information in localStorage for later use
+
+            if (page.instagram_business_account) {
+              console.log('Instagram account found for page:', page.name);
+              hasInstagramAccount = true;
+              var instagramOption = document.createElement('option');
+              var instagramValue = JSON.stringify({
+                id: page.instagram_business_account.id,
+                pageToken: page.access_token
+              });
+              instagramOption.value = instagramValue;
+              instagramOption.text = page.instagram_username || 'Instagram Account';
+              instagramDropdown.appendChild(instagramOption);
+              console.log('Added Instagram option:', instagramOption.text, 'with value:', instagramValue);
+            }
+
+            var pageInfo = JSON.stringify({
+              id: page.id,
+              name: page.name,
+              access_token: page.access_token,
+              roles: page.roles,
+              instagram_business_account: page.instagram_business_account ? page.instagram_business_account : null
+            });
+            localStorage.setItem('facebook_page_' + page.id, pageInfo);
+          });
+          document.getElementById('pageSelection').style.display = 'block';
+          document.getElementById('instagramOptions').style.display = 'block';
+          console.log('Has Instagram Account:', hasInstagramAccount);
+        } else {
+          console.log('User has no pages');
+          hasInstagramAccount = false;
+          hasFacebookPages = false;
+        }
+      } else {
+        console.log('User is not logged in');
+        isFacebookLoggedIn = false;
+        hasFacebookPages = false;
+        hasInstagramAccount = false;
+        updateRequiredFields();
+        document.getElementById('loginStatus').innerHTML = 'Not logged in';
+        document.getElementById('loginButton').style.display = 'inline';
+        document.getElementById('logoutButton').style.display = 'none';
+        document.getElementById('pageSelection').style.display = 'none';
+      }
+      console.log('UI update complete');
+      updateRequiredFields();
+    }
+
+    function logout() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('Logout successful');
+          updateUI({ loggedOut: true });
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error during logout:', error);
+          updateUI({ error: 'Logout failed' });
+        })
+        .logout();
+    }
+
+    function getUserInfo() {
+        console.log('getUserInfo called');
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.needsReauth) {
+              // Token has expired and needs re-authentication
+              updateUI({ needsReauth: true });
+              login();
+            } else {
+              // Process user info as before
+              updateUI(result);
+              isFacebookLoggedIn = true;
+              updateRequiredFields();
+            }
+          })
+          .withFailureHandler(function(error) {
+            console.error('Error getting user info:', error);
+            updateUI(null);
+            isFacebookLoggedIn = false;
+            hasFacebookPages = false;
+            updateRequiredFields();
+          })
+          .getUserInfo();
+    }
+
+    window.onload = function() {
+      console.log('Window loaded, checking user info');
+      getUserInfo();
+      updateRequiredFields();
+    };
+        
+  </script>
+</body>
+
+</html>
