@@ -1,9 +1,9 @@
-#**BizSavvy**
+#BizSavvy
 Welcome to BizSavvy! We empower small businesses with an intuitive platform for easy social media management, boosting engagement, and driving impactful campaigns through streamlined scheduling, real-time analytics, and team collaboration.
 
 
-#**Key Features**
-Content Creation and Storage
+##Key Features
+**Content Creation and Storage**
 Effortlessly create and store social media content using Google Sheets and Drive with integrated forms. Our platform simplifies content management, making it easy to keep track of all your social media assets in one place.
 
 **Team Collaboration**
@@ -16,5 +16,5 @@ Eliminate manual intervention with our scheduling and posting feature. Schedule 
 Access performance metrics and insightful reports with Google Sheets charts and custom visualizations. Our analytics tools provide you with the data you need to measure the impact of your social media efforts and make informed decisions.
 
 
-#**Explore More**
+##Explore More
 Discover the full potential of BizSavvy by visiting our published site.
