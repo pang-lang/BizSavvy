@@ -7,13 +7,16 @@ Welcome to BizSavvy! We empower small businesses with an intuitive platform for 
 
 Effortlessly create and store social media content using Google Sheets and Drive with integrated forms. Our platform simplifies content management, making it easy to keep track of all your social media assets in one place.
 
+
 **Team Collaboration**
 
 Streamline collaboration by managing approvals for Google Drive documents. Our platform ensures your team can work together seamlessly, improving efficiency and ensuring consistency across your social media campaigns.
 
+
 **Scheduling and Posting**
 
 Eliminate manual intervention with our scheduling and posting feature. Schedule your posts effortlessly and let our platform handle automatic posting, ensuring your content is published at the optimal times.
+
 
 **Analytics**
 
